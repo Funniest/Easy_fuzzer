@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
+//insert data
 char* insert_data(char* src, char* insert, int pos){
 	int size = strlen(src) + strlen(insert);
 	char *str = (char*)malloc((sizeof(char) * size) + 1);
@@ -21,6 +22,7 @@ char* insert_data(char* src, char* insert, int pos){
 	return str;
 }
 
+//random mutation data
 int mutation(){
 	int fd;
 	char *test_case[] = {{"\%n"}, {"\%s"}, 
@@ -36,6 +38,7 @@ int mutation(){
 	int menu_rand = 0;
 	srand(time(NULL));
 	
+	//menu select
 	menu_rand = rand() % 2;
 	write(fd, &menu+menu_rand, 1);
 	write(fd, "\n", 1);
@@ -43,9 +46,9 @@ int mutation(){
 	int test_case_rand = 0;
 	int test_case_number = 0;
 	int str_lens = 0;
-	test_case_rand = rand() % 4;
-	str_lens = rand() % 512 + 1;
-	test_case_number = rand() % 10 + 1;
+	test_case_rand = rand() % 4; //select test case
+	str_lens = rand() % 512 + 1; //select data lens
+	test_case_number = rand() % 10 + 1; //input test case number
 
 	char *str = (char *)malloc(sizeof(char) * str_lens);
 	int i = 0;
@@ -55,6 +58,7 @@ int mutation(){
 
 	char *mutation_data = str;
 	char *old_data = NULL;
+	//insert test case in data
 	printf("insert : %s\n", *(test_case + test_case_rand));
 	for(i = 0; i < test_case_number; i++){
 		mutation_data = insert_data(mutation_data, *(test_case + test_case_rand), (rand() % str_lens));
@@ -86,9 +90,11 @@ int main(int argc, char *argv[])
 
 	mutation();
 	
+	//fork child
 	child = fork();
 	if (child == 0)
 	{
+		// ./vuln < input
 		const char *filename = "input";  // or "input.txt" — the question uses both
 		int fd = open(filename, O_RDONLY);
 		if (fd < 0){
@@ -101,6 +107,7 @@ int main(int argc, char *argv[])
 		}
 		close(fd);  // In theory, it could fail, but there isn't much you can do about it
 
+		//trace me!
 		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 		printf("= fork() =\n");
 		execlp("/home/user/Desktop/Fuzzer/clear/easy_fuzzer/buf", "/home/user/Desktop/Fuzzer/clear/easy_fuzzer/buf", (char *)NULL);
@@ -112,12 +119,14 @@ int main(int argc, char *argv[])
 	ptrace(PTRACE_CONT, child, NULL, NULL);
 	waitpid(child, &status, 0);
 	
+	//buffer overflow 
 	if(!WIFEXITED(status)){
 		ptrace(PTRACE_GETREGS, child, NULL, &regs);
 		printf ("[!]oveflow rip: 0x%llx\n", regs.rip);
 		system("cp input ./crash");
 	}
 
+	//not is detach!
 	if(ptrace(PTRACE_DETACH, child, NULL, NULL) == -1){
 		printf("[!]No Dettach!\n");
 	}
